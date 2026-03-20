@@ -24,10 +24,8 @@ interface UploadedFile {
 
 // ── Extraction PDF via pdfjs-dist (extraction complète, toutes pages)
 async function extractTextFromPDF(file: File): Promise<string> {
-  // Import dynamique pour éviter le SSR (pdfjs-dist est client-only)
   const pdfjsLib = await import('pdfjs-dist')
 
-  // Worker pdfjs via CDN — évite les problèmes webpack/SSR de Next.js
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
 
   const arrayBuffer = await file.arrayBuffer()
@@ -36,12 +34,10 @@ async function extractTextFromPDF(file: File): Promise<string> {
 
   const pageTexts: string[] = []
 
-  // Extraire le texte de chaque page sans rien sauter
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page        = await pdf.getPage(pageNum)
     const textContent = await page.getTextContent()
 
-    // Reconstituer le texte en respectant les blocs et sauts de ligne
     let pageText  = ''
     let lastY: number | null = null
 
@@ -74,12 +70,10 @@ async function extractTextFromFile(file: File): Promise<string> {
     return await file.text()
   }
 
-  // PDF → extraction complète via pdfjs-dist
   if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
     return await extractTextFromPDF(file)
   }
 
-  // DOCX → extraction via XML interne (format ZIP)
   if (
     file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
     file.name.endsWith('.docx')
@@ -96,7 +90,6 @@ async function extractTextFromFile(file: File): Promise<string> {
     return text || `[DOCX : ${file.name} — contenu transmis à l'IA]`
   }
 
-  // Fallback : lire comme texte brut
   try {
     return await file.text()
   } catch {
@@ -110,7 +103,6 @@ function splitIntoChunks(text: string, chunkSize = 12000): string[] {
   const chunks: string[] = []
   let i = 0
   while (i < text.length) {
-    // Couper sur un saut de ligne propre si possible
     let end = i + chunkSize
     if (end < text.length) {
       const lastNewline = text.lastIndexOf('\n', end)
@@ -166,7 +158,7 @@ function QCMOutput({ questions }: { questions: QCMQuestion[] }) {
 
   return (
     <div className="animate-fade-up">
-      {allAnswered && (
+      {allAnswered ? (
         <div style={{
           background: score === questions.length ? '#E8F2EB' : '#FFF7ED',
           border: `1px solid ${score === questions.length ? '#4A7C59' : '#C9A84C'}`,
@@ -185,7 +177,7 @@ function QCMOutput({ questions }: { questions: QCMQuestion[] }) {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
         {questions.map((q, qi) => {
@@ -218,7 +210,7 @@ function QCMOutput({ questions }: { questions: QCMQuestion[] }) {
                   )
                 })}
               </div>
-              {isAnswered && (
+              {isAnswered ? (
                 <div style={{
                   marginTop: '0.75rem', padding: '0.6rem 0.8rem',
                   background: '#F0F3F7', borderRadius: '4px',
@@ -226,7 +218,7 @@ function QCMOutput({ questions }: { questions: QCMQuestion[] }) {
                 }}>
                   <strong>Explication :</strong> {q.explanation}
                 </div>
-              )}
+              ) : null}
             </div>
           )
         })}
@@ -303,11 +295,11 @@ function FileUploadZone({
           </div>
           <div style={{ fontSize: '0.78rem', color: '#4A7C59' }}>
             {formatSize(uploadedFile.size)} · {uploadedFile.content.length.toLocaleString()} caractères extraits
-            {uploadedFile.content.length > 12000 && (
+            {uploadedFile.content.length > 12000 ? (
               <span style={{ marginLeft: '6px', color: '#C9A84C', fontWeight: 600 }}>
                 · traitement par chunks ({splitIntoChunks(uploadedFile.content).length} parties)
               </span>
-            )}
+            ) : null}
           </div>
         </div>
         {processing ? (
@@ -367,20 +359,19 @@ export default function GenerateurPage() {
 
   const [mode,        setMode]        = useState<Mode>('summary')
   const [inputMode,   setInputMode]   = useState<InputMode>('text')
-  const [prompt,      setPrompt]      = useState('')
+  const [prompt,      setPrompt]      = useState<string>('')
   const [uploadedFile, setUploadedFile] = useState<UploadedFile | null>(null)
   const [fileProcessing, setFileProcessing] = useState(false)
   const [difficulty,  setDifficulty]  = useState<Difficulty>('intermediate')
   const [loading,     setLoading]     = useState(false)
   const [progress,    setProgress]    = useState<{ current: number; total: number } | null>(null)
-  const [error,       setError]       = useState('')
+  const [error,       setError]       = useState<string>('')
   const [result,      setResult]      = useState<string | QCMQuestion[] | null>(null)
-  const [llmUsed,     setLlmUsed]     = useState('')
+  const [llmUsed,     setLlmUsed]     = useState<string>('')
   const [cached,      setCached]      = useState(false)
 
   if (authLoading) return <LoadingScreen />
 
-  // ── Génération avec support gros fichiers (chunking + synthèse)
   async function handleGenerate() {
     const effectivePrompt = inputMode === 'file' && uploadedFile
       ? uploadedFile.content
@@ -398,7 +389,6 @@ export default function GenerateurPage() {
       const isMultiChunk = chunks.length > 1
 
       if (!isMultiChunk) {
-        // Fichier court ou texte : traitement direct
         const data = await generate({
           task_type: mode,
           prompt: effectivePrompt,
@@ -409,7 +399,6 @@ export default function GenerateurPage() {
         setLlmUsed(data.llm_used)
         setCached(data.cached)
       } else {
-        // Gros fichier : traitement chunk par chunk puis synthèse
         setProgress({ current: 0, total: chunks.length + 1 })
         const partialSummaries: string[] = []
 
@@ -433,7 +422,6 @@ Extrait tous les éléments importants de cette partie (concepts clés, règles,
           setLlmUsed(data.llm_used)
         }
 
-        // Synthèse finale
         setProgress({ current: chunks.length + 1, total: chunks.length + 1 })
         const synthesisPrompt = `
 Tu as analysé un document complet en ${chunks.length} parties. Voici les extraits de chaque partie :
@@ -457,8 +445,8 @@ ${mode === 'summary'
         setCached(finalData.cached)
         setProgress(null)
       }
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erreur inconnue')
+    } catch (err: any) {
+      setError(err instanceof Error ? err.message : typeof err === 'string' ? err : 'Erreur inconnue')
       setProgress(null)
     } finally {
       setLoading(false)
@@ -488,7 +476,6 @@ ${mode === 'summary'
 
       <main style={{ maxWidth: '900px', margin: '0 auto', padding: '2rem 1.5rem' }}>
 
-        {/* Header */}
         <div style={{ marginBottom: '2rem' }}>
           <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: '#0F1B2D', margin: '0 0 4px' }}>
             Générateur IA
@@ -498,7 +485,6 @@ ${mode === 'summary'
           </p>
         </div>
 
-        {/* Mode tabs */}
         <div style={{
           display: 'flex', gap: '8px', marginBottom: '1.5rem',
           borderBottom: '1px solid #DDD5C4', paddingBottom: '0',
@@ -519,10 +505,8 @@ ${mode === 'summary'
           ))}
         </div>
 
-        {/* Input zone */}
         <div className="card" style={{ marginBottom: '1.5rem' }}>
 
-          {/* Toggle texte / fichier */}
           <div style={{
             display: 'flex', gap: '0', marginBottom: '1rem',
             border: '1px solid #C8D4E3', borderRadius: '6px',
@@ -581,7 +565,6 @@ ${mode === 'summary'
             </div>
           )}
 
-          {/* Options */}
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <label style={{ fontSize: '0.82rem', color: '#2E5480', fontWeight: 600 }}>Niveau</label>
@@ -611,8 +594,7 @@ ${mode === 'summary'
           </div>
         </div>
 
-        {/* Progress bar pour gros fichiers */}
-        {progress && (
+        {progress ? (
           <div className="card" style={{ marginBottom: '1rem', padding: '1rem 1.25rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '0.83rem', color: '#2E5480', fontWeight: 600 }}>
@@ -640,10 +622,9 @@ ${mode === 'summary'
               ✓ Chaque partie est analysée intégralement — rien n'est omis
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Exemples (mode texte seulement) */}
-        {inputMode === 'text' && !result && !loading && (
+        {inputMode === 'text' && !result && !loading ? (
           <div style={{ marginBottom: '1.5rem' }}>
             <p style={{ fontSize: '0.8rem', color: '#8FA8C8', marginBottom: '8px' }}>Exemples de sujets :</p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -659,10 +640,9 @@ ${mode === 'summary'
               ))}
             </div>
           </div>
-        )}
+        ) : null}
 
-        {/* Erreur */}
-        {error && (
+        {error ? (
           <div style={{
             background: '#FAEAE9', border: '1px solid #C4544A',
             borderRadius: '6px', padding: '0.9rem 1.1rem',
@@ -670,10 +650,9 @@ ${mode === 'summary'
           }}>
             ⚠ {error}
           </div>
-        )}
+        ) : null}
 
-        {/* Loading skeleton */}
-        {loading && !progress && (
+        {loading && !progress ? (
           <div className="card" style={{ padding: '2rem' }}>
             {[100, 80, 95, 70, 85].map((w, i) => (
               <div key={i} style={{
@@ -683,19 +662,17 @@ ${mode === 'summary'
               }} />
             ))}
           </div>
-        )}
+        ) : null}
 
-        {/* Résultat */}
-        {result && !loading && (
+        {result && !loading ? (
           <div>
-            {/* Meta bar */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: '8px',
               marginBottom: '0.75rem',
             }}>
               <span className={`llm-badge ${llmUsed}`}>{llmUsed}</span>
-              {cached && <span className="llm-badge cached">⚡ cache</span>}
-              {uploadedFile && (
+              {cached ? <span className="llm-badge cached">⚡ cache</span> : null}
+              {uploadedFile ? (
                 <span style={{
                   fontSize: '0.75rem', color: '#4A7C59',
                   background: '#E8F2EB', padding: '2px 8px',
@@ -703,7 +680,7 @@ ${mode === 'summary'
                 }}>
                   📁 {uploadedFile.name}
                 </span>
-              )}
+              ) : null}
               <span style={{ fontSize: '0.78rem', color: '#8FA8C8', marginLeft: 'auto' }}>
                 {mode === 'summary' ? 'Résumé généré' : `${(result as QCMQuestion[]).length} questions`}
               </span>
@@ -716,7 +693,6 @@ ${mode === 'summary'
               </button>
             </div>
 
-            {/* Output */}
             <div className="card">
               {mode === 'summary'
                 ? <SummaryOutput text={result as string} />
@@ -724,7 +700,6 @@ ${mode === 'summary'
               }
             </div>
 
-            {/* Actions */}
             <div style={{ display: 'flex', gap: '8px', marginTop: '1rem', justifyContent: 'flex-end' }}>
               <button onClick={() => { setResult(null); setPrompt(''); setUploadedFile(null) }} className="btn-ghost">
                 Nouveau
@@ -732,15 +707,15 @@ ${mode === 'summary'
               <button onClick={handleGenerate} className="btn-ghost">
                 ↺ Regénérer
               </button>
-              {mode === 'summary' && (
+              {mode === 'summary' ? (
                 <button className="btn-primary" style={{ fontSize: '0.85rem' }}
                   onClick={() => alert('Module flashcards bientôt disponible !')}>
                   → Créer des flashcards
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
-        )}
+        ) : null}
       </main>
     </div>
   )
