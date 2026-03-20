@@ -11,6 +11,7 @@ export async function generate(payload: {
   task_type: 'summary' | 'flashcard' | 'qcm' | 'case_practice' | 'dissertation' | 'commentary' | 'revision_step'
   prompt: string
   difficulty?: 'beginner' | 'intermediate' | 'advanced'
+  source_filename?: string
 }) {
   const jwt = await getJWT()
   if (!jwt) throw new Error('Non connecté')
@@ -29,8 +30,9 @@ export async function generate(payload: {
     throw new Error(err.error ?? `Erreur ${res.status}`)
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return res.json() as Promise<{
-    result:   unknown
+    result:   any
     llm_used: string
     cached:   boolean
   }>

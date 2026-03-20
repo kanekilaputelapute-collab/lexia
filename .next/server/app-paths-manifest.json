@@ -1,8 +1,9 @@
 {
-  "/page": "app/page.js",
-  "/generateur/page": "app/generateur/page.js",
-  "/login/page": "app/login/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
   "/flashcards/page": "app/flashcards/page.js",
   "/revision/page": "app/revision/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/login/page": "app/login/page.js",
+  "/generateur/page": "app/generateur/page.js",
+  "/page": "app/page.js"
 }
