@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --navy:   #0F1B2D;
+  --cream:  #F5F0E8;
+  --gold:   #C9A84C;
+  --sage:   #4A7C59;
+  --rose:   #C4544A;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--cream);
+  color: var(--navy);
+  font-family: 'Palatino Linotype', Palatino, 'Book Antiqua', Georgia, serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── Typography ── */
+h1, h2, h3 { font-family: Georgia, Cambria, 'Times New Roman', serif; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar        { width: 6px; }
+::-webkit-scrollbar-track  { background: #E8E0D0; }
+::-webkit-scrollbar-thumb  { background: #8FA8C8; border-radius: 3px; }
+
+/* ── Prose markdown output ── */
+.prose-law h1  { font-size: 1.4rem; font-weight: 700; margin: 1.5rem 0 0.5rem; color: var(--navy); }
+.prose-law h2  { font-size: 1.15rem; font-weight: 700; margin: 1.2rem 0 0.4rem; color: var(--navy); border-left: 3px solid var(--gold); padding-left: 0.75rem; }
+.prose-law h3  { font-size: 1rem; font-weight: 600; margin: 1rem 0 0.3rem; color: #2E5480; padding-left: 1.25rem; }
+.prose-law p   { margin: 0.6rem 0; line-height: 1.8; }
+.prose-law strong { color: var(--navy); font-weight: 700; }
+.prose-law ul  { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+.prose-law li  { margin: 0.25rem 0; line-height: 1.7; }
+
+/* ── Animations ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.animate-fade-up    { animation: fadeUp 0.35s ease both; }
+.animate-pulse-gold { animation: pulse-gold 1.5s ease-in-out infinite; }
+
+/* ── Button base ── */
+.btn-primary {
+  background: var(--navy);
+  color: var(--cream);
+  border: none;
+  padding: 0.6rem 1.4rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+.btn-primary:hover   { background: #1A3A5C; }
+.btn-primary:active  { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--navy);
+  border: 1px solid #C8D4E3;
+  padding: 0.55rem 1.2rem;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.btn-ghost:hover { background: #E8E0D0; border-color: #8FA8C8; }
+
+/* ── Card ── */
+.card {
+  background: #FFFDF8;
+  border: 1px solid #DDD5C4;
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+/* ── Badge LLM ── */
+.llm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.03em;
+}
+.llm-badge.mistral { background: #EEF2FF; color: #3730A3; }
+.llm-badge.gemini  { background: #F0FDF4; color: #166534; }
+.llm-badge.groq    { background: #FFF7ED; color: #9A3412; }
+.llm-badge.cached  { background: #F0F3F7; color: #2E5480; }
