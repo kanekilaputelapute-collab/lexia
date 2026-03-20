@@ -1,1 +1,7 @@
-# dépendances/node_modules/.pnp.pnp.js# next.js/.next//out/build/# vercel.vercel# fichiers locaux d'environnement.env*.local# divers.DS_Store*.bak
+﻿node_modules/
+.next/
+.vercel/
+out/
+build/
+*.bak
+.env*.local

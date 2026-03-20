@@ -26,39 +26,52 @@ interface UploadedFile {
 
 // ── Extraction PDF via pdfjs-dist (extraction complète, toutes pages)
 async function extractTextFromPDF(file: File): Promise<string> {
-  const pdfjsLib = await import('pdfjs-dist')
+  try {
+    const pdfjsLib = await import('pdfjs-dist');
 
-  pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`
+    // Utilisation du worker local (plus fiable que le CDN dans Next.js)
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
 
-  const arrayBuffer = await file.arrayBuffer()
-  const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer })
-  const pdf         = await loadingTask.promise
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ 
+      data: arrayBuffer,
+      useSystemFonts: true 
+    });
+    const pdf = await loadingTask.promise;
 
-  const pageTexts: string[] = []
+    const pageTexts: string[] = [];
 
-  for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-    const page        = await pdf.getPage(pageNum)
-    const textContent = await page.getTextContent()
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
 
-    let pageText  = ''
-    let lastY: number | null = null
+      let pageText = '';
+      let lastY: number | null = null;
 
-    for (const item of textContent.items) {
-      if ('str' in item) {
-        const y = (item as { transform: number[]; str: string }).transform[5]
-        if (lastY !== null && Math.abs(y - lastY) > 5) {
-          pageText += '\n'
+      for (const item of textContent.items) {
+        if ('str' in item) {
+          const it = item as { transform: number[]; str: string };
+          const y = it.transform[5];
+          if (lastY !== null && Math.abs(y - lastY) > 5) {
+            pageText += '\n';
+          }
+          pageText += it.str;
+          lastY = y;
         }
-        pageText += (item as { str: string }).str
-        lastY = y
       }
+
+      pageTexts.push(`--- Page ${pageNum} ---\n${pageText.trim()}`);
     }
 
-    pageTexts.push(`--- Page ${pageNum} ---\n${pageText.trim()}`)
+    const fullText = pageTexts.join('\n\n');
+    return fullText || `[PDF : ${file.name} — aucun texte extractible]`;
+  } catch (error) {
+    console.error("Erreur d'extraction PDF:", error);
+    return `[Erreur PDF : ${file.name} — impossible d'extraire le texte]`;
   }
-
-  const fullText = pageTexts.join('\n\n')
-  return fullText || `[PDF : ${file.name} — aucun texte extractible (PDF scanné ou image)]`
 }
 
 // ── Extraction texte depuis fichier

@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['pdfjs-dist'],
+  turbopack: {},
+
   webpack: (config, { isServer }) => {
     if (isServer) {
       // pdfjs-dist est client-only, on l'exclut du bundle serveur
@@ -9,17 +12,16 @@ const nextConfig = {
       }
       config.externals = [...(config.externals || []), 'pdfjs-dist']
     }
- 
+
     // Nécessaire pour que webpack accepte les fichiers .mjs de pdfjs
     config.module.rules.push({
       test: /\.m?js$/,
       type: 'javascript/auto',
       resolve: { fullySpecified: false },
     })
- 
+
     return config
   },
 }
- 
+
 module.exports = nextConfig
- 
